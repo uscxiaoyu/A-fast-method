@@ -1,2 +1,5 @@
 # A-fast-method
-第二轮修改相关文件和数据
+
+A fast method for agent-based model fitting of aggregate-level diffusion data
+
+论文第二轮修改相关文件和数据
