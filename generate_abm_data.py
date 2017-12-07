@@ -1,3 +1,4 @@
+# for both python 2 and 3
 from random import random, shuffle
 import numpy as np
 import networkx as nx
