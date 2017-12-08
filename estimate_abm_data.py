@@ -4,9 +4,9 @@ import numpy as np
 import time
 
 
-data = np.load('gnm_random_graph(10000,30000)_new.npy')
+data = np.load('gnm_random_graph(10000,30000).npy')
 params_cont = []
-for i, x in enumerate(data):
+for i, x in enumerate(data[:20]):
     p, q = x[:2]
     s_full = x[2:]
     max_ix = np.argmax(s_full)
@@ -19,4 +19,4 @@ for i, x in enumerate(data):
     print('Time elapsed: %.2fs' % (time.clock() - t1))
     params_cont.append([p, q] + list(params))
 
-np.save('estimate gnm_random_graph(10000,30000)_new', params_cont)
+#np.save('estimate gnm_random_graph(10000,30000)_new', params_cont)
