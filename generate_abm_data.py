@@ -1,84 +1,61 @@
-# for both python 2 and 3
-from random import random, shuffle
+#coding=utf-8
 import numpy as np
 import networkx as nx
 import time
-import matplotlib.pyplot as plt
+import random
 
-def _diffuse_(G, p, q, num_of_run=30):
-    DG = G.to_directed()
-    for i in DG:
-        DG.node[i]['state'] = False
 
-    non_adopt_set = list(DG)
-    num_of_adopt = []
-    for j in range(num_of_run):
-        shuffle(non_adopt_set)
-        x = 0
-        for i in non_adopt_set:
-            dose = sum([1 for k in DG.predecessors(i) if DG.node[k]['state']])
-            prob = p + q * dose
-            if random() <= prob:
-                DG.node[i]['state'] = True
-                non_adopt_set.remove(i)
-                x += 1
+class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随机网络
+    def __init__(self, p, q, g=nx.gnm_random_graph(10000, 30000), num_runs=30):
+        if not nx.is_directed(g):
+            self.g = g.to_directed()
+        self.p, self.q = p, q
+        self.num_runs = num_runs
 
-        num_of_adopt.append(x)
-    return num_of_adopt
+    def decision(self, i):  # 线性决策规则
+        dose = sum([self.g.node[k]['state'] for k in self.g.predecessors(i)])
+        prob = self.p + self.q * dose
+        return True if random.random() <= prob else False
 
-def _diffuse_gmm_(G, p, q, num_of_run=30):
-    DG = G.to_directed()
-    for i in DG:
-        DG.node[i]['state'] = False
+    def single_diffuse(self):  # 单次扩散
+        for i in self.g:
+            self.g.node[i]['state'] = False
 
-    non_adopt_set = list(DG)
-    num_of_adopt = []
-    for j in range(num_of_run):
-        shuffle(non_adopt_set)
-        x = 0
-        for i in non_adopt_set:
-            dose = sum([1 for k in DG.predecessors(i) if DG.node[k]['state']])
-            prob = 1 - (1 - p) * (1 - q) ** dose
-            if random() <= prob:
-                DG.node[i]['state'] = True
-                non_adopt_set.remove(i)
-                x += 1
+        non_adopt_set = [i for i in self.g if not self.g.node[i]['state']]
+        num_of_adopt = []
+        for j in range(self.num_runs):
+            x = 0
+            random.shuffle(non_adopt_set)
+            for i in non_adopt_set:
+                if self.decision(i):
+                    self.g.node[i]['state'] = True
+                    non_adopt_set.remove(i)
+                    x += 1
+            num_of_adopt.append(x)
+        return num_of_adopt
 
-        num_of_adopt.append(x)
-    return num_of_adopt
+    def repete_diffuse(self, repetes=10):  # 多次扩散
+        return [self.single_diffuse() for i in range(repetes)]
+
+
+class Diffuse_gmm(Diffuse):
+    def decision(self, i):  # gmm决策规则
+        dose = sum([self.g.node[k]['state'] for k in self.predecessors(i)])
+        prob = 1 - (1 - self.p) * (1 - self.q) ** dose
+        return True if random.random() <= prob else False
 
 
 if __name__ == '__main__':
-    p_cont = [0.001 + i * 0.005 for i in range(5)]
-    q_cont = [0.05 + i * 0.005 for i in range(20)]
-    diff_cont = []
-    for p in p_cont:
-        for q in q_cont:
-            s_estim = []
-            t1 = time.clock()
-            for i in range(10):
-                G = nx.gnm_random_graph(10000, 30000)
-                diffuse = _diffuse_gmm_(G, p, q)
-                s_estim.append(diffuse)
+    pq_range = [(i, j) for i in np.linspace(0.001, 0.021, num=5) for j in np.linspace(0.05, 0.145, num=20)]
+    result = []
+    u = 1
+    g = nx.gnm_random_graph(10000, 30000)
+    for p, q in pq_range:
+        t1 = time.clock()
+        diff = Diffuse_gmm(p, q, g=g, num_runs=30)
+        x = np.mean(diff.repete_diffuse(), axis=0)
+        result.append(np.concatenate(([p, q], x)))
+        print u, 'Time: %.2f s' % (time.clock() - t1)
+        u += 1
 
-            print(p, q, 'Time elapsed: %.2f s' % (time.clock() - t1))
-            s_estim_avg = np.mean(s_estim, axis=0)
-            diff_cont.append(np.concatenate(([p, q], s_estim_avg)))
-
-    np.save('gnm_random_graph(10000,30000)_gmm', diff_cont)
-
-
-'''
-    diff_cont = [np.mean(s_estim[:(5 + i * 5)], axis=0) for i in range(6)]
-    fig = plt.figure(figsize=(16, 8))
-    for i in range(6):
-        ax = fig.add_subplot(2, 3, i + 1)
-        ax.plot(diff_cont[i], 'mo-', lw=1, label='repeates: %s' % ((i + 1) * 5))
-        ax.legend(loc='best', fontsize=12)
-        ax.set_ylim([0, 1000])
-        if i == 0 or i == 3:
-            ax.set_ylabel('Number of adopters', fontsize=15, style='italic')
-        if i >= 3:
-            ax.set_xlabel('Steps', fontsize=15, style='italic')
-    plt.show()
-'''
+    np.save('gnm_random_graph(10000, 30000)-gmm', result)
