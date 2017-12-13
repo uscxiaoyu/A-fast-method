@@ -8,7 +8,6 @@ import multiprocessing
 path = 'data/'
 file_list = []
 
-
 def vst_dir(path, exclude='estimate', include='.npy'):
     for x in os.listdir(path):
         sub_path = os.path.join(path, x)
@@ -28,7 +27,25 @@ def func(x, para_range):
     return [p, q] + list(params)
 
 if __name__ == '__main__':
-    vst_dir(path)
+    path = 'H:/Anaconda/Ipython notebook/A fast parameter estimation method for ABM/2nd round'
+    diff_data = np.load(path+'/complete_graph(10000).npy')
+    pool = multiprocessing.Pool(processes=6)
+    para_range = [[1e-6, 0.1], [1e-4, 1], [0, 50000]]
+    result = []
+    t1 = time.clock()
+    for x in diff_data:
+        result.append(pool.apply_async(func, (x, para_range)))
+
+    pool.close()
+    pool.join()
+    to_save = []
+    for res in result:
+        to_save.append(res.get())
+
+    print ': Time elapsed: %.2fs' % (time.clock() - t1)
+    np.save(path + '/estimate complete_graph(10000)', to_save)
+
+    '''
     for txt in file_list:
         diff_data = np.load(txt)
         pool = multiprocessing.Pool(processes=6)
@@ -46,3 +63,5 @@ if __name__ == '__main__':
 
         print txt, ': Time elapsed: %.2fs' % (time.clock() - t1)
         np.save(txt[:5] + 'estimate ' + txt[5:-4], to_save)
+    
+    '''
