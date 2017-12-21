@@ -28,7 +28,7 @@ def func(x, para_range):
 
 if __name__ == '__main__':
     path = 'H:/Anaconda/Ipython notebook/A fast parameter estimation method for ABM/2nd round'
-    diff_data = np.load(path+'/complete_graph(10000).npy')
+    diff_data = np.load(path + '/complete_graph(10000).npy')
     pool = multiprocessing.Pool(processes=6)
     para_range = [[1e-6, 0.1], [1e-4, 1], [0, 50000]]
     result = []
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     for res in result:
         to_save.append(res.get())
 
-    print ': Time elapsed: %.2fs' % (time.clock() - t1)
+    print(': Time elapsed: %.2fs' % (time.clock() - t1))
     np.save(path + '/estimate complete_graph(10000)', to_save)
 
     '''
