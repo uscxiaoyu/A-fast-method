@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from math import e
 import numpy as np
 import sympy as sy
 import time
@@ -9,10 +10,10 @@ class Bass_Estimate:
         self.s, self.s_len = np.array(s), len(s)
         # 求sse对p, q, m的一次和二次导数
         self.p, self.q, self.m = sy.symbols('p q m')
-        sse = self.m * (1 - 1 / (np.exp(self.p + self.q))) / (1 + self.q / (self.p * np.exp(self.p + self.q))) - self.s[0]
+        sse = self.m * (1 - 1 / (e**(self.p + self.q))) / (1 + self.q / (self.p * e**(self.p + self.q))) - self.s[0]
         for i in range(1, self.s_len):
-            sse += self.m * (1 - 1 / (np.exp((self.p + self.q) * (i + 1)))) / (1 + self.q / (self.p * np.exp((self.p + self.q) * (i + 1)))) - \
-                   self.m * (1 - 1 / (np.exp((self.p + self.q) * i))) / (1 + self.q / (self.p * np.exp((self.p + self.q) * i))) - self.s[i]
+            sse += self.m * (1 - 1 / (e**((self.p + self.q) * (i + 1)))) / (1 + self.q / (self.p * e**((self.p + self.q) * (i + 1)))) - \
+                   self.m * (1 - 1 / (e**((self.p + self.q) * i))) / (1 + self.q / (self.p * e**((self.p + self.q) * i))) - self.s[i]
 
         self.der_p = sy.diff(sse, self.p)
         self.der_q = sy.diff(sse, self.q)
@@ -98,7 +99,7 @@ if __name__=='__main__':
     china_set = {'color tv': (np.arange(1997, 2013),[2.6, 1.2, 2.11, 3.79, 3.6, 7.33, 7.18, 5.29, 8.42, 5.68, 6.57, 5.49, 6.48, 5.42, 10.72, 5.15]),
                  'mobile phone': (np.arange(1997, 2013),[1.7, 1.6, 3.84, 12.36, 14.5, 28.89, 27.18, 21.33, 25.6, 15.88, 12.3, 6.84, 9.02, 7.82, 16.39, 7.39])}
 
-    s = data_set['color televisions'][1]
+    s = data_set['room air conditioners'][1]
     t1 = time.clock()
     bas_est = Bass_Estimate(s)
     res = bas_est.optima_search(np.array([0.001, 0.2, 1.5*sum(s)]), tol=1e-6)

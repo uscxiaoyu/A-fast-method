@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#-*- coding: utf-8 -*-
 from copy import deepcopy as dc
 from math import e
 from scipy.optimize import minimize
@@ -36,7 +36,7 @@ class Bass_Estimate:
         return R_2
 
     def optima_search(self):
-        sol = minimize(self.sse, np.array([0.001, 0.3, 1.5 * np.sum(self.s)]), method='Nelder-Mead')
+        sol = minimize(self.sse, np.array([0.001, 0.2, 1.5 * np.sum(self.s)]), method='Nelder-Mead', tol=1e-8, options={'disp': True})
         par = sol.x
         r_2 = self.r2(par)
         return par[0], par[1], par[2], r_2  # p,q,m,r2
@@ -54,7 +54,7 @@ if __name__=='__main__':
                                5.15]),
                  'mobile phone': (np.arange(1997, 2013),[1.7, 1.6, 3.84, 12.36, 14.5, 28.89, 27.18, 21.33, 25.6, 15.88, 12.3, 6.84, 9.02,
                                    7.82, 16.39, 7.39])}
-    S = data_set['clothers dryers'][1]
+    S = data_set['color televisions'][1]
 
     t1 = time.clock()
     para_range = [[1e-5, 0.1], [1e-5, 0.8], [sum(S), 10 * sum(S)]]
