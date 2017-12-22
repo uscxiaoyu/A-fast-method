@@ -2,6 +2,7 @@
 from estimate_bass import *
 import numpy as np
 import networkx as nx
+import os
 import time
 import random
 import multiprocessing
@@ -138,7 +139,24 @@ def adjust_range(diff_data, est_data, g):
     return diff_data, est_data
 
 
+file_list = []
+
+
+def vst_dir(path, exclude='estimate', include='.npy'):
+    for x in os.listdir(path):
+        sub_path = os.path.join(path, x)
+        if os.path.isdir(sub_path):
+            vst_dir(sub_path)
+        else:
+            if include in sub_path.lower() and exclude not in sub_path.lower():
+                file_list.append(sub_path)
+
+
 if __name__ == '__main__':
-    new_path = 'new-data/'
+    vst_dir('new-data/')
+    new_path = 'new-new-data/'
     g = nx.gnm_random_graph(1000, 30000)
-    diff_data = np.load(path + )
+    for i, txt in enumerate(sorted(file_list)):
+        diff_data = np.load(txt)  # 扩散数据
+        est_data = np.load(txt[:9]+'estimate_'+txt[9:])  # 参数和估计值数据
+        diff_data, est_data = add_data(diff_data, est_data, g)
