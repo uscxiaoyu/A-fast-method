@@ -80,6 +80,8 @@ class Bass_Estimate:
             v = (r[-1] - r[0]) / r[0]
             if v < threshold:
                 break
+        else:
+            print('Exceed the maximal iteration: %d' % max_runs)
 
         r2 = self.r2(solution[0][1:])
         result = solution[0][1:]+[r2]

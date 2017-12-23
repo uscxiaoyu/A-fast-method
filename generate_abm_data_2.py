@@ -59,24 +59,6 @@ def generate_random_graph(degre_sequance):
     G = nx.configuration_model(degre_sequance, create_using=None, seed=None)
     G = nx.Graph(G)
     G.remove_edges_from(G.selfloop_edges())
-
-    num_of_edges = nx.number_of_edges(G)
-    edges_list = G.edges()
-
-    if num_of_edges > 30000:
-        edges_to_drop = num_of_edges - 30000
-        x = np.random.choice(num_of_edges, edges_to_drop, replace=False)
-        for i in x:
-            a, b = edges_list[i]
-            G.remove_edge(a, b)
-    elif num_of_edges < 30000:
-        edges_to_add = 30000 - num_of_edges
-        x = np.random.choice(10000, edges_to_add * 2, replace=False)
-        to_add_list = zip(x[:edges_to_add], x[edges_to_add:])
-        G.add_edges_from(to_add_list)
-    else:
-        pass
-
     return G
 
 

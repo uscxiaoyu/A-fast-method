@@ -8,7 +8,7 @@ import multiprocessing
 
 
 class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随机网络
-    def __init__(self, p, q, alpha, g=nx.gnm_random_graph(10000, 30000), num_runs=30):
+    def __init__(self, p, q, alpha=0, g=nx.gnm_random_graph(10000, 30000), num_runs=30):
         if not nx.is_directed(g):
             self.g = g.to_directed()
         self.p, self.q = p, q
@@ -17,8 +17,8 @@ class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随�
 
     def decision(self, i):  # 线性决策规则
         dose = sum([self.g.node[k]['state'] for k in self.g.predecessors(i)])
-        #prob = self.p + self.q * dose
-        prob = self.p + self.q * (dose / self.g.in_degree(i) ** self.alpha) if self.g.in_degree(i) else self.p
+        prob = self.p + self.q * dose
+        #prob = self.p + self.q * (dose / self.g.in_degree(i) ** self.alpha) if self.g.in_degree(i) else self.p
         return True if random.random() <= prob else False
 
     def single_diffuse(self):  # 单次扩散
@@ -76,8 +76,8 @@ def vst_dir(path, exclude='estimate', include='.npy'):
                 file_list.append(sub_path)
 
 
-def func(p, q, alpha, g):
-    diff = Diffuse(p, q, alpha, g, num_runs=30)
+def func(p, q, g):
+    diff = Diffuse(p, q, g=g, num_runs=30)
     x = np.mean(diff.repete_diffuse(), axis=0)
     return np.concatenate(([p, q], x))
 
@@ -97,7 +97,8 @@ if __name__ == '__main__':
               nx.watts_strogatz_graph(10000, 6, 0), nx.watts_strogatz_graph(10000, 6, 0.1),
               nx.watts_strogatz_graph(10000, 6, 0.3), nx.watts_strogatz_graph(10000, 6, 0.5),
               nx.watts_strogatz_graph(10000, 6, 0.7), nx.watts_strogatz_graph(10000, 6, 0.9),
-              nx.watts_strogatz_graph(10000, 6, 1)]'''
+              nx.watts_strogatz_graph(10000, 6, 1)]
+    
 
     vst_dir(path)
     file_list = sorted(file_list)
@@ -124,3 +125,30 @@ if __name__ == '__main__':
 
         print(i, txt[5:-8], 'Time: %.2f s' % (time.clock() - t1))
         np.save('new-data/%s' % txt[5:-8], data)
+        '''
+    g_cont = [nx.gnm_random_graph(10000, 100000), nx.gnm_random_graph(10000, 30000),
+              nx.gnm_random_graph(10000, 40000), nx.gnm_random_graph(10000, 50000), nx.gnm_random_graph(10000, 60000),
+              nx.gnm_random_graph(10000, 70000), nx.gnm_random_graph(10000, 80000), nx.gnm_random_graph(10000, 90000)]
+    txt_cont = ['gnm_random_graph(10000,100000)', 'gnm_random_graph(10000,30000)',
+                'gnm_random_graph(10000,40000)', 'gnm_random_graph(10000,50000)', 'gnm_random_graph(10000,60000)',
+                'gnm_random_graph(10000,70000)', 'gnm_random_graph(10000,80000)', 'gnm_random_graph(10000,90000)']
+    path = 'new-data/'
+    new_path = 'new-data/gnm/'
+    for i, txt in enumerate(txt_cont):
+        d = np.load(path + txt + '.npy')
+        g = g_cont[i]
+        t1 = time.clock()
+        pool = multiprocessing.Pool(processes=6)
+        result = []
+        for p, q in d[:, :2]:
+            result.append(pool.apply_async(func, (p, q, g)))
+
+        pool.close()
+        pool.join()
+
+        data = []
+        for res in result:
+            data.append(res.get())
+
+        print i,  txt, 'Time: %.2f s' % (time.clock() - t1)
+        np.save(new_path + txt, data)

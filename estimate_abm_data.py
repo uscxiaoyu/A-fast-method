@@ -24,7 +24,8 @@ def func(x, para_range):
     max_ix = np.argmax(s_full)
     s = s_full[:max_ix + 2]
     bassest = eb.Bass_Estimate(s, para_range)
-    params = bassest.optima_search(c_n=100, threshold=10e-8)
+    bassest.t_n = 1000
+    params = bassest.optima_search(c_n=200, threshold=10e-8)
     return [p, q] + list(params)
 
 if __name__ == '__main__':
@@ -46,12 +47,12 @@ if __name__ == '__main__':
     print(': Time elapsed: %.2fs' % (time.clock() - t1))
     np.save(path + '/estimate complete_graph(10000)', to_save)'''
 
-    path = 'new-data/'
+    path = 'new-data/gnm/'
     vst_dir(path)
     for txt in sorted(file_list):
         diff_data = np.load(txt)
         pool = multiprocessing.Pool(processes=6)
-        para_range = [[1e-6, 0.1], [1e-4, 1], [0, 50000]]
+        para_range = [[1e-6, 0.1], [1e-5, 1], [0, 50000]]
         result = []
         t1 = time.clock()
         for x in diff_data:
@@ -64,4 +65,4 @@ if __name__ == '__main__':
             to_save.append(res.get())
 
         print txt, ': Time elapsed: %.2fs' % (time.clock() - t1)
-        np.save(txt[:9] + 'estimate_' + txt[9:-4], to_save)
+        np.save(txt[:13] + 'estimate_' + txt[13:-4], to_save)
