@@ -4,11 +4,12 @@ import networkx as nx
 import time
 import random
 import os
+import pickle
 import multiprocessing
 
 
 class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随机网络
-    def __init__(self, p, q, alpha=0, g=nx.gnm_random_graph(10000, 30000), num_runs=30):
+    def __init__(self, p, q, alpha=0, g=nx.gnm_random_graph(10000, 30000), num_runs=40):
         if not nx.is_directed(g):
             self.g = g.to_directed()
         self.p, self.q = p, q
@@ -63,28 +64,13 @@ def generate_random_graph(degre_sequance):
     return G
 
 
-file_list = []
-
-
-def vst_dir(path, exclude='estimate', include='.npy'):
-    for x in os.listdir(path):
-        sub_path = os.path.join(path, x)
-        if os.path.isdir(sub_path):
-            vst_dir(sub_path)
-        else:
-            if include in sub_path.lower() and exclude not in sub_path.lower():
-                file_list.append(sub_path)
-
-
 def func(p, q, g):
-    diff = Diffuse(p, q, g=g, num_runs=30)
+    diff = Diffuse(p, q, g=g, num_runs=40)
     x = np.mean(diff.repete_diffuse(), axis=0)
     return np.concatenate(([p, q], x))
 
 
 if __name__ == '__main__':
-    path = 'data/'
-    new_path = 'new-data/'
     '''
     expon_seq = np.load('exponential_sequance.npy')
     gauss_seq = np.load('gaussian_sequance.npy')
@@ -126,21 +112,31 @@ if __name__ == '__main__':
         print(i, txt[5:-8], 'Time: %.2f s' % (time.clock() - t1))
         np.save('new-data/%s' % txt[5:-8], data)
         '''
-    g_cont = [nx.gnm_random_graph(10000, 100000), nx.gnm_random_graph(10000, 30000),
+    expon_seq = np.load('exponential_sequance.npy')
+    gauss_seq = np.load('gaussian_sequance.npy')
+    logno_seq = np.load('lognormal_sequance.npy')
+    g_cont = [nx.barabasi_albert_graph(10000, 3), generate_random_graph(expon_seq), generate_random_graph(gauss_seq),
+              nx.gnm_random_graph(10000, 100000), nx.gnm_random_graph(10000, 30000),
               nx.gnm_random_graph(10000, 40000), nx.gnm_random_graph(10000, 50000), nx.gnm_random_graph(10000, 60000),
-              nx.gnm_random_graph(10000, 70000), nx.gnm_random_graph(10000, 80000), nx.gnm_random_graph(10000, 90000)]
-    txt_cont = ['gnm_random_graph(10000,100000)', 'gnm_random_graph(10000,30000)',
-                'gnm_random_graph(10000,40000)', 'gnm_random_graph(10000,50000)', 'gnm_random_graph(10000,60000)',
-                'gnm_random_graph(10000,70000)', 'gnm_random_graph(10000,80000)', 'gnm_random_graph(10000,90000)']
-    path = 'new-data/'
-    new_path = 'new-data/gnm/'
-    for i, txt in enumerate(txt_cont):
-        d = np.load(path + txt + '.npy')
+              nx.gnm_random_graph(10000, 70000), nx.gnm_random_graph(10000, 80000), nx.gnm_random_graph(10000, 90000),
+              generate_random_graph(logno_seq),
+              nx.watts_strogatz_graph(10000, 6, 0), nx.watts_strogatz_graph(10000, 6, 0.1),
+              nx.watts_strogatz_graph(10000, 6, 0.3), nx.watts_strogatz_graph(10000, 6, 0.5),
+              nx.watts_strogatz_graph(10000, 6, 0.7), nx.watts_strogatz_graph(10000, 6, 0.9),
+              nx.watts_strogatz_graph(10000, 6, 1)]
+
+    f = open('auto_data/bound.pkl')
+    bound_dict = pickle.load(f)
+    f.close()
+
+    for i, key in enumerate(sorted(bound_dict.keys())):
+        r_p, r_q = bound_dict[key][0]
+        pq_cont = [(p, q) for p in np.linspace(r_p[0], r_p[1], num=10) for q in np.linspace(r_q[0], r_q[1], num=20)]
         g = g_cont[i]
         t1 = time.clock()
         pool = multiprocessing.Pool(processes=6)
         result = []
-        for p, q in d[:, :2]:
+        for p, q in pq_cont:
             result.append(pool.apply_async(func, (p, q, g)))
 
         pool.close()
@@ -150,5 +146,5 @@ if __name__ == '__main__':
         for res in result:
             data.append(res.get())
 
-        print i,  txt, 'Time: %.2f s' % (time.clock() - t1)
-        np.save(new_path + txt, data)
+        print i + 1,  key, 'Time: %.2f s' % (time.clock() - t1)
+        np.save('auto_data/' + key, data)

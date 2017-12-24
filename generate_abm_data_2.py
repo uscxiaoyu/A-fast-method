@@ -2,14 +2,13 @@
 from estimate_bass import *
 import numpy as np
 import networkx as nx
-import os
 import time
 import random
-import multiprocessing
+import pickle
 
 
 class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随机网络
-    def __init__(self, p, q, g=nx.gnm_random_graph(10000, 30000), num_runs=30):
+    def __init__(self, p, q, g=nx.gnm_random_graph(10000, 30000), num_runs=40):
         if not nx.is_directed(g):
             self.g = g.to_directed()
         self.p, self.q = p, q
@@ -41,19 +40,71 @@ class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随�
         return [self.single_diffuse() for i in range(repetes)]
 
 
-class Diffuse_gmm(Diffuse):  # social influence
-    def __init__(self, p, q, alpha, g=nx.gnm_random_graph(10000, 30000), num_runs=30):
-        if not nx.is_directed(g):
-            self.g = g.to_directed()
-        self.p, self.q = p, q
-        self.alpha = alpha
-        self.num_runs = num_runs
+class Gen_para:
+    def __init__(self, g, p_cont=(0.001, 0.02), q_cont=(0.08, 0.1), delta=(0.0005, 0.01)):
+        self.p_cont = p_cont
+        self.q_cont = q_cont
+        self.d_p, self.d_q = delta
+        self.g = g
 
-    def decision(self, i):  # gmm决策规则
-        dose = sum([self.g.node[k]['state'] for k in self.g.predecessors(i)])
-        prob = 1 - (1 - self.p) * (1 - self.q) ** (dose / self.g.in_degree(i) ** self.alpha) if self.g.in_degree(i) else self.p
-        return True if random.random() <= prob else False
+    def add_data(self, p, q):
+        diff = Diffuse(p, q, g=self.g)
+        x = np.mean(diff.repete_diffuse(), axis=0)
+        max_idx = np.argmax(x)
+        s = x[: (max_idx + 2)]
+        para_range = [[1e-6, 0.1], [1e-5, 0.8], [0.5 * sum(s), 5 * sum(s)]]
+        bassest = Bass_Estimate(x, para_range)
+        bassest.t_n = 1000
+        res = bassest.optima_search(c_n=200, threshold=10e-8)
+        return res[:2]
 
+    def identify_range(self):
+        min_p, max_p = self.p_cont
+        min_q, max_q = self.q_cont
+        est_cont = [self.add_data(p, q) for p, q in ((min_p, min_q), (max_p, max_q))]
+        i = 1
+        while True:
+            min_P, min_Q = est_cont[0]
+            max_P, max_Q = est_cont[1]
+            print i,
+            print '    P: %.4f~%.4f' % (min_P, max_P),
+            print('    Q: %.4f~%.4f' % (min_Q, max_Q))
+            c1, c2 = 0, 0
+            if min_P > 0.0007:  # in case of min_p < 0
+                if min_p - self.d_p > 0:
+                    min_p -= self.d_p
+                else:
+                    min_p *= 0.8
+                c1 += 1
+            if min_Q > 0.38:
+                min_q -= self.d_q
+                c1 += 1
+            if max_P < 0.03:
+                max_p += self.d_p
+                c2 += 1
+            if max_Q < 0.58:
+                max_q += self.d_q
+                c2 += 1
+
+            i += 1
+
+            if c1 + c2 != 0:  # check which ends should be updated
+                if c1 != 0:
+                    est_cont[0] = self.add_data(min_p, min_q)
+                if c2 != 0:
+                    est_cont[1] = self.add_data(max_p, max_q)
+            else:
+                break
+
+            if i == 15:
+                break
+
+        return [(min_p, max_p), (min_q, max_q)], [(min_P, max_P), (min_Q, max_Q)]
+
+    def generate_sample(self, n_p=10, n_q=20):
+        rg_p, rg_q = self.identify_range()
+        sp_cont = [(p, q) for p in np.linspace(rg_p[0], rg_p[1], n_p) for q in np.linspace(rg_q[0], rg_q[1], n_q)]
+        return sp_cont
 
 def generate_random_graph(degre_sequance):
     G = nx.configuration_model(degre_sequance, create_using=None, seed=None)
@@ -62,83 +113,79 @@ def generate_random_graph(degre_sequance):
     return G
 
 
-def add_data(p, q, diff_data, est_data, g):
-    diff = Diffuse(p, q, g)
+def func(p, q, g):
+    diff = Diffuse(p, q, g=g, num_runs=40)
     x = np.mean(diff.repete_diffuse(), axis=0)
-    d = np.array(np.concatenate(([p, q], x)))
-    n_diff_data = np.concatenate((diff_data, d), axis=0)
-
-    para_range = [[1e-6, 0.1], [1e-5, 0.8], [0.5 * sum(x), 5 * sum(x)]]
-    bassest = Bass_Estimate(x, para_range)
-    res = bassest.optima_search(c_n=100, threshold=10e-8)
-    y = [[p, q] + list(res)]
-    n_est_data = np.concatenate((est_data, y), axis=0)
-    return n_diff_data, n_est_data
-
-
-def adjust_range(diff_data, est_data, g):
-    delta_p = 0.0025
-    delta_q = abs(diff_data[1][1] - diff_data[1][0])
-    c = 0
-    while True:
-        min_est = np.min(est_data, axis=0)
-        max_est = np.max(est_data, axis=0)
-        p_range = [min_est[0], max_est[0]]
-        q_range = [min_est[1], max_est[1]]
-        P_range = [min_est[2], max_est[2]]
-        Q_range = [min_est[3], max_est[3]]
-        flag = True  # 检验范围是否变化
-        if P_range[0] > 0.0007 or Q_range[0] > 0.38:  # 高于下限
-            if p_range[0] - delta_p > 0:  # 防止p小于0的情况
-                p_range[0] -= delta_p
-
-            q_range[0] -= delta_q
-            p, q = p_range[0], q_range[0]
-            diff_data, est_data = add_data(p, q, diff_data, est_data, g)
-            c += 1
-            flag = False
-
-        if P_range[1] < 0.03 or Q_range[1] < 0.58:  # 低于上限
-            p_range[0] += delta_p
-            q_range[0] += delta_q
-            p, q = p_range[0], q_range[0]
-            diff_data, est_data = add_data(p, q, diff_data, est_data, g)
-            c += 1
-            flag = False
-
-        peak_idx = [np.argmax(x[2:]) for x in diff_data]
-        peak_range = [min(peak_idx), max(peak_idx)]
-        if peak_range[1] < 25:  # 低于上限
-            q_range[0] -= delta_q
-            p, q = p_range[0], q_range[0]
-            diff_data, est_data = add_data(p, q, diff_data, est_data, g)
-            c += 1
-            flag = False
-
-        if flag:
-            break
-
-    return diff_data, est_data
-
-
-file_list = []
-
-
-def vst_dir(path, exclude='estimate', include='.npy'):
-    for x in os.listdir(path):
-        sub_path = os.path.join(path, x)
-        if os.path.isdir(sub_path):
-            vst_dir(sub_path)
-        else:
-            if include in sub_path.lower() and exclude not in sub_path.lower():
-                file_list.append(sub_path)
+    return np.concatenate(([p, q], x))
 
 
 if __name__ == '__main__':
-    vst_dir('new-data/')
-    new_path = 'new-new-data/'
-    g = nx.gnm_random_graph(1000, 30000)
-    for i, txt in enumerate(sorted(file_list)):
-        diff_data = np.load(txt)  # 扩散数据
-        est_data = np.load(txt[:9]+'estimate_'+txt[9:])  # 参数和估计值数据
-        diff_data, est_data = add_data(diff_data, est_data, g)
+    """
+    expon_seq = np.load('exponential_sequance.npy')
+    gauss_seq = np.load('gaussian_sequance.npy')
+    logno_seq = np.load('lognormal_sequance.npy')
+    g_cont = [nx.barabasi_albert_graph(10000, 3), generate_random_graph(expon_seq), generate_random_graph(gauss_seq),
+              nx.gnm_random_graph(10000, 100000), nx.gnm_random_graph(10000, 30000),
+              nx.gnm_random_graph(10000, 40000), nx.gnm_random_graph(10000, 50000), nx.gnm_random_graph(10000, 60000),
+              nx.gnm_random_graph(10000, 70000), nx.gnm_random_graph(10000, 80000), nx.gnm_random_graph(10000, 90000),
+              generate_random_graph(logno_seq),
+              nx.watts_strogatz_graph(10000, 6, 0), nx.watts_strogatz_graph(10000, 6, 0.1),
+              nx.watts_strogatz_graph(10000, 6, 0.3), nx.watts_strogatz_graph(10000, 6, 0.5),
+              nx.watts_strogatz_graph(10000, 6, 0.7), nx.watts_strogatz_graph(10000, 6, 0.9),
+              nx.watts_strogatz_graph(10000, 6, 1)]
+
+    txt_cont = ['barabasi_albert_graph(10000,3)', 'exponential_graph(10000,3)', 'gaussian_graph(10000,3)',
+                'gnm_random_graph(10000,100000)', 'gnm_random_graph(10000,30000)',
+                'gnm_random_graph(10000,40000)', 'gnm_random_graph(10000,50000)', 'gnm_random_graph(10000,60000)',
+                'gnm_random_graph(10000,70000)', 'gnm_random_graph(10000,80000)', 'gnm_random_graph(10000,90000)',
+                'lognormal_graph(10000,3)',
+                'watts_strogatz_graph(10000,6,0)', 'watts_strogatz_graph(10000,6,0.1)',
+                'watts_strogatz_graph(10000,6,0.3)', 'watts_strogatz_graph(10000,6,0.5)',
+                'watts_strogatz_graph(10000,6,0.7)', 'watts_strogatz_graph(10000,6,0.9)',
+                'watts_strogatz_graph(10000,6,1.0)']
+    
+    path = 'auto_data/'
+    
+    for i, txt in enumerate(txt_cont):
+        t1 = time.clock()
+        g = g_cont[i]
+        samp = Gen_para()
+        pool = multiprocessing.Pool(processes=6)
+        result = []
+        for p, q in samp:
+            result.append(pool.apply_async(func, (p, q, g)))
+
+        pool.close()
+        pool.join()
+
+        data = []
+        for res in result:
+            data.append(res.get())
+
+        print i,  txt, 'Time: %.2f s' % (time.clock() - t1)
+        np.save(path + txt, data)
+    """
+    f = open('auto_data/bound.pkl')
+    bound_dict = pickle.load(f)
+    f.close()
+
+    txt_cont = ['gnm_random_graph(10000,40000)', 'gnm_random_graph(10000,50000)', 'gnm_random_graph(10000,60000)',
+                'gnm_random_graph(10000,70000)', 'gnm_random_graph(10000,80000)', 'gnm_random_graph(10000,90000)',
+                'gnm_random_graph(10000,100000)']
+
+    g_cont = [nx.gnm_random_graph(10000, 40000), nx.gnm_random_graph(10000, 50000), nx.gnm_random_graph(10000, 60000),
+              nx.gnm_random_graph(10000, 70000), nx.gnm_random_graph(10000, 80000), nx.gnm_random_graph(10000, 90000),
+              nx.gnm_random_graph(10000, 100000)]
+
+    for j, g in enumerate(g_cont):
+        t1 = time.clock()
+        print j + 1, txt_cont[j]
+        q_cont = (0.08 * 3 / (4 + j), 0.11 * 3 / (4 + j))
+        ger_samp = Gen_para(g=g, q_cont=q_cont)
+        bound_dict[txt_cont[j]] = ger_samp.identify_range()
+        print '  time: %.2f s' % (time.clock() - t1)
+
+    f = open('auto_data/bound.pkl', 'wb')
+    pickle.dump(bound_dict, f)
+    f.close()
+    # f = open('auto_data/bound.pkl'); pickle.load(f)
