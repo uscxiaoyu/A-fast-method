@@ -8,7 +8,7 @@ import multiprocessing
 file_list = []
 
 
-def vst_dir(path, exclude='estimate', include='.npy'):
+def vst_dir(path, exclude='.pkl', include='.npy'):
     for x in os.listdir(path):
         sub_path = os.path.join(path, x)
         if os.path.isdir(sub_path):
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     print(': Time elapsed: %.2fs' % (time.clock() - t1))
     np.save(path + '/estimate complete_graph(10000)', to_save)'''
 
-    path = 'new-data/gnm/'
+    path = 'auto_data/'
     vst_dir(path)
     for txt in sorted(file_list):
         diff_data = np.load(txt)
@@ -65,4 +65,4 @@ if __name__ == '__main__':
             to_save.append(res.get())
 
         print txt, ': Time elapsed: %.2fs' % (time.clock() - t1)
-        np.save(txt[:13] + 'estimate_' + txt[13:-4], to_save)
+        np.save(txt[:10] + 'estimate_' + txt[10:-4], to_save)
