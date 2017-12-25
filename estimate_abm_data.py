@@ -52,7 +52,7 @@ if __name__ == '__main__':
     for txt in sorted(file_list):
         diff_data = np.load(txt)
         pool = multiprocessing.Pool(processes=6)
-        para_range = [[1e-6, 0.1], [1e-5, 1], [0, 50000]]
+        para_range = [[1e-6, 0.08], [0.1, 0.8], [0, 30000]]
         result = []
         t1 = time.clock()
         for x in diff_data:
@@ -64,5 +64,5 @@ if __name__ == '__main__':
         for res in result:
             to_save.append(res.get())
 
-        print txt, ': Time elapsed: %.2fs' % (time.clock() - t1)
+        print(txt, ': Time elapsed: %.2fs' % (time.clock() - t1))
         np.save(txt[:10] + 'estimate_' + txt[10:-4], to_save)

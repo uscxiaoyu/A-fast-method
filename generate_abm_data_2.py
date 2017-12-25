@@ -8,7 +8,7 @@ import pickle
 
 
 class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随机网络
-    def __init__(self, p, q, g=nx.gnm_random_graph(10000, 30000), num_runs=40):
+    def __init__(self, p, q, g=nx.gnm_random_graph(10000, 30000), num_runs=30):
         if not nx.is_directed(g):
             self.g = g.to_directed()
         self.p, self.q = p, q
@@ -52,8 +52,8 @@ class Gen_para:
         x = np.mean(diff.repete_diffuse(), axis=0)
         max_idx = np.argmax(x)
         s = x[: (max_idx + 2)]
-        para_range = [[1e-6, 0.1], [1e-5, 0.8], [0.5 * sum(s), 5 * sum(s)]]
-        bassest = Bass_Estimate(x, para_range)
+        para_range = [[1e-6, 0.1], [1e-5, 0.8], [2000, 20000]]
+        bassest = Bass_Estimate(s, para_range)
         bassest.t_n = 1000
         res = bassest.optima_search(c_n=200, threshold=10e-8)
         return res[:2]
@@ -66,9 +66,7 @@ class Gen_para:
         while True:
             min_P, min_Q = est_cont[0]
             max_P, max_Q = est_cont[1]
-            print i,
-            print '    P: %.4f~%.4f' % (min_P, max_P),
-            print('    Q: %.4f~%.4f' % (min_Q, max_Q))
+            print(i, ' P:%.4f~%.4f' % (min_P, max_P), ' Q:%.4f~%.4f' % (min_Q, max_Q))
             c1, c2 = 0, 0
             if min_P > 0.0007:  # in case of min_p < 0
                 if min_p - self.d_p > 0:
@@ -82,7 +80,7 @@ class Gen_para:
             if max_P < 0.03:
                 max_p += self.d_p
                 c2 += 1
-            if max_Q < 0.58:
+            if max_Q < 0.53:
                 max_q += self.d_q
                 c2 += 1
 
@@ -96,7 +94,7 @@ class Gen_para:
             else:
                 break
 
-            if i == 15:
+            if i == 20:
                 break
 
         return [(min_p, max_p), (min_q, max_q)], [(min_P, max_P), (min_Q, max_Q)]
@@ -144,46 +142,56 @@ if __name__ == '__main__':
                 'watts_strogatz_graph(10000,6,0.7)', 'watts_strogatz_graph(10000,6,0.9)',
                 'watts_strogatz_graph(10000,6,1.0)']
     
-    path = 'auto_data/'
-    
-    for i, txt in enumerate(txt_cont):
-        t1 = time.clock()
-        g = g_cont[i]
-        samp = Gen_para()
-        pool = multiprocessing.Pool(processes=6)
-        result = []
-        for p, q in samp:
-            result.append(pool.apply_async(func, (p, q, g)))
-
-        pool.close()
-        pool.join()
-
-        data = []
-        for res in result:
-            data.append(res.get())
-
-        print i,  txt, 'Time: %.2f s' % (time.clock() - t1)
-        np.save(path + txt, data)
     """
-    f = open('auto_data/bound.pkl')
-    bound_dict = pickle.load(f)
-    f.close()
+    bound_dict = {}
+    expon_seq = np.load('exponential_sequance.npy')
+    gauss_seq = np.load('gaussian_sequance.npy')
+    logno_seq = np.load('lognormal_sequance.npy')
+    g_cont = [nx.barabasi_albert_graph(10000, 3), generate_random_graph(expon_seq), generate_random_graph(gauss_seq),
+              nx.gnm_random_graph(10000, 30000), nx.gnm_random_graph(10000, 40000), nx.gnm_random_graph(10000, 50000),
+              nx.gnm_random_graph(10000, 60000), nx.gnm_random_graph(10000, 70000), nx.gnm_random_graph(10000, 80000),
+              nx.gnm_random_graph(10000, 90000), nx.gnm_random_graph(10000, 100000), generate_random_graph(logno_seq),
+              nx.watts_strogatz_graph(10000, 6, 0), nx.watts_strogatz_graph(10000, 6, 0.1),
+              nx.watts_strogatz_graph(10000, 6, 0.3), nx.watts_strogatz_graph(10000, 6, 0.5),
+              nx.watts_strogatz_graph(10000, 6, 0.7), nx.watts_strogatz_graph(10000, 6, 0.9),
+              nx.watts_strogatz_graph(10000, 6, 1)]
 
-    txt_cont = ['gnm_random_graph(10000,40000)', 'gnm_random_graph(10000,50000)', 'gnm_random_graph(10000,60000)',
-                'gnm_random_graph(10000,70000)', 'gnm_random_graph(10000,80000)', 'gnm_random_graph(10000,90000)',
-                'gnm_random_graph(10000,100000)']
-
-    g_cont = [nx.gnm_random_graph(10000, 40000), nx.gnm_random_graph(10000, 50000), nx.gnm_random_graph(10000, 60000),
-              nx.gnm_random_graph(10000, 70000), nx.gnm_random_graph(10000, 80000), nx.gnm_random_graph(10000, 90000),
-              nx.gnm_random_graph(10000, 100000)]
+    txt_cont = ['barabasi_albert_graph(10000,3)', 'exponential_graph(10000,3)', 'gaussian_graph(10000,3)',
+                'gnm_random_graph(10000,30000)', 'gnm_random_graph(10000,40000)', 'gnm_random_graph(10000,50000)',
+                'gnm_random_graph(10000,60000)', 'gnm_random_graph(10000,70000)', 'gnm_random_graph(10000,80000)',
+                'gnm_random_graph(10000,90000)', 'gnm_random_graph(10000,100000)', 'lognormal_graph(10000,3)',
+                'watts_strogatz_graph(10000,6,0)', 'watts_strogatz_graph(10000,6,0.1)',
+                'watts_strogatz_graph(10000,6,0.3)', 'watts_strogatz_graph(10000,6,0.5)',
+                'watts_strogatz_graph(10000,6,0.7)', 'watts_strogatz_graph(10000,6,0.9)',
+                'watts_strogatz_graph(10000,6,1.0)']
 
     for j, g in enumerate(g_cont):
         t1 = time.clock()
-        print j + 1, txt_cont[j]
-        q_cont = (0.08 * 3 / (4 + j), 0.11 * 3 / (4 + j))
-        ger_samp = Gen_para(g=g, q_cont=q_cont)
+        print(j + 1, txt_cont[j])
+        if j <= 2:
+            p_cont = (0.001, 0.021)
+            q_cont = (0.06, 0.08)
+            delta = (0.00031, 0.008)
+        elif j <= 10:
+            p_cont = (0.001, 0.024)
+            q_cont = (0.08 * 3 / j, 0.1 * 3 / j)
+            delta = (0.00031, 0.01 * 3 / j)
+        elif j == 11:
+            p_cont = (0.001, 0.008)
+            q_cont = (0.04, 0.06)
+            delta = (0.00031, 0.008)
+        elif j == 12:
+            p_cont = (0.0015, 0.011)
+            q_cont = (0.07, 0.18)
+            delta = (0.00031, 0.015)
+        else:
+            p_cont = (0.0015, 0.02)
+            q_cont = (0.07, 0.15)
+            delta = (0.00031, 0.008)
+
+        ger_samp = Gen_para(g=g, p_cont=p_cont, q_cont=q_cont, delta=delta)
         bound_dict[txt_cont[j]] = ger_samp.identify_range()
-        print '  time: %.2f s' % (time.clock() - t1)
+        print('  time: %.2f s' % (time.clock() - t1))
 
     f = open('auto_data/bound.pkl', 'wb')
     pickle.dump(bound_dict, f)
