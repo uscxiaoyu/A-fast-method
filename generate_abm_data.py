@@ -112,32 +112,20 @@ if __name__ == '__main__':
         print(i, txt[5:-8], 'Time: %.2f s' % (time.clock() - t1))
         np.save('new-data/%s' % txt[5:-8], data)
     '''
-    expon_seq = np.load('exponential_sequance.npy')
-    gauss_seq = np.load('gaussian_sequance.npy')
-    logno_seq = np.load('lognormal_sequance.npy')
-    g_cont = [nx.barabasi_albert_graph(10000, 3), generate_random_graph(expon_seq), generate_random_graph(gauss_seq),
-              nx.gnm_random_graph(10000, 100000),
-              nx.gnm_random_graph(10000, 30000), nx.gnm_random_graph(10000, 40000), nx.gnm_random_graph(10000, 50000),
-              nx.gnm_random_graph(10000, 60000), nx.gnm_random_graph(10000, 70000), nx.gnm_random_graph(10000, 80000),
-              nx.gnm_random_graph(10000, 90000),  generate_random_graph(logno_seq),
-              nx.watts_strogatz_graph(10000, 6, 0), nx.watts_strogatz_graph(10000, 6, 0.1),
-              nx.watts_strogatz_graph(10000, 6, 0.3), nx.watts_strogatz_graph(10000, 6, 0.5),
-              nx.watts_strogatz_graph(10000, 6, 0.7), nx.watts_strogatz_graph(10000, 6, 0.9),
-              nx.watts_strogatz_graph(10000, 6, 1.0)]
+    g_cont = [nx.watts_strogatz_graph(10000, 6, 0), nx.watts_strogatz_graph(10000, 6, 0.1),
+              nx.watts_strogatz_graph(10000, 6, 0.3)]
 
-    txt_cont = ['barabasi_albert_graph(10000,3)', 'exponential_graph(10000,3)', 'gaussian_graph(10000,3)',
-                'gnm_random_graph(10000,100000)',
-                'gnm_random_graph(10000,30000)', 'gnm_random_graph(10000,40000)', 'gnm_random_graph(10000,50000)',
-                'gnm_random_graph(10000,60000)', 'gnm_random_graph(10000,70000)', 'gnm_random_graph(10000,80000)',
-                'gnm_random_graph(10000,90000)', 'lognormal_graph(10000,3)',
-                'watts_strogatz_graph(10000,6,0)', 'watts_strogatz_graph(10000,6,0.1)',
-                'watts_strogatz_graph(10000,6,0.3)', 'watts_strogatz_graph(10000,6,0.5)',
-                'watts_strogatz_graph(10000,6,0.7)', 'watts_strogatz_graph(10000,6,0.9)',
-                'watts_strogatz_graph(10000,6,1.0)']
-
-    f = open('auto_data/bound.pkl', 'rb')
-    bound_dict = pickle.load(f)
-    f.close()
+    txt_cont = ['watts_strogatz_graph(10000,6,0)', 'watts_strogatz_graph(10000,6,0.1)',
+                'watts_strogatz_graph(10000,6,0.3)']
+    bound_dict = {'watts_strogatz_graph(10000,6,0)': ([(1.1744051200000018e-05, 0.019),(0.15, 0.2)],
+                                                        [(0.0005851833355511311, 0.03942370539955275),
+                                                        (0.08566117951300223, 0.6049901066003283)]),
+                  'watts_strogatz_graph(10000,6,0.1)': ([(7.000000000000008e-05, 0.019), (0.11, 0.15)],
+                                                        [(0.0003985278742605879, 0.03002370660942767),
+                                                        (0.22768315273114983, 0.5356097641357954)]),
+                  'watts_strogatz_graph(10000,6,0.3)': ([(7.000000000000008e-05, 0.022720000000000014),
+                                                        (0.1, 0.136)],
+                                                        [(0.00026768553551967546, 0.03025745457137106)])}
     for i, key in enumerate(sorted(bound_dict.keys())):
         r_p, r_q = bound_dict[key][0]
         pq_cont = [(p, q) for p in np.linspace(r_p[0], r_p[1], num=10) for q in np.linspace(r_q[0], r_q[1], num=15)]
