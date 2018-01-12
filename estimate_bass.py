@@ -101,11 +101,12 @@ if __name__=='__main__':
                                5.15]),
                  'mobile phone': (np.arange(1997, 2013),[1.7, 1.6, 3.84, 12.36, 14.5, 28.89, 27.18, 21.33, 25.6, 15.88, 12.3, 6.84, 9.02,
                                    7.82, 16.39, 7.39])}
-    S = data_set['room air conditioners'][1]
-
+    S = data_set['clothers dryers'][1]
+    m_idx = np.argmax(S)
+    s = S[:m_idx + 2]
     t1 = time.clock()
-    para_range = [[1e-5, 0.1], [1e-5, 0.8], [sum(S), 10 * sum(S)]]
-    bassest = Bass_Estimate(S, para_range)
+    para_range = [[1e-5, 0.1], [1e-5, 0.8], [sum(s), 10 * sum(s)]]
+    bassest = Bass_Estimate(s, para_range)
     bass_estimates = bassest.optima_search(c_n=100, threshold=10e-8)
     print('p:%.4f   q:%.4f   m:%d   r2:%.4f' % tuple(bass_estimates))
     print('Time elapsed: %.2fs' % (time.clock() - t1))
