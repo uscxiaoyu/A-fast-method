@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from copy import deepcopy as dc
-from math import e
 import numpy as np
 import time
 
@@ -41,8 +40,8 @@ class Bass_Estimate:
     def f(self, params):  # 如果要使用其它模型，可以重新定义
         p, q, m = params
         t_list = np.arange(1, self.s_len+ 1)
-        a = np.array([1 - e ** (- (p + q) * t) for t in t_list])
-        b = np.array([1 + q / p * e ** (- (p + q) * t) for t in t_list])
+        a = 1 - np.exp(-(p + q) * t_list)
+        b = 1 + q / p * np.exp(-(p + q) * t_list)
         diffu_cont = m * a / b
 
         adopt_cont = np.zeros_like(diffu_cont)
@@ -87,6 +86,63 @@ class Bass_Estimate:
         result = solution[0][1:]+[r2]
 
         return result  # p,q,m,r2
+
+class Bass_Forecast:
+    def __init__(self, s, n, b_idx):
+        self.s = s
+        self.n = n
+        self.s_len = len(s)
+        self.b_idx = b_idx
+
+    def f(self, params):  # 如果要使用其它模型，可以重新定义
+        p, q, m = params
+        t_list = np.arange(1, self.s_len+ 1)
+        a = 1 - np.exp(-(p + q) * t_list)
+        b = 1 + q / p * np.exp(-(p + q) * t_list)
+        diffu_cont = m * a / b
+
+        adopt_cont = np.zeros_like(diffu_cont)
+        adopt_cont[0] = diffu_cont[0]
+        for t in range(1, self.s_len):
+            adopt_cont[t] = diffu_cont[t] - diffu_cont[t - 1]
+        return adopt_cont
+
+    def predict(self):
+        pred_cont = []
+        for i in range(self.s_len - 1 - self.b_idx):  # 拟合次数
+            idx = self.b_idx + 1 + i
+            x = self.s[: idx]
+            para_range = [[1e-5, 0.1], [1e-5, 0.8], [sum(x), 20000]]
+            bass_est = Bass_Estimate(x, para_range)
+            est = bass_est.optima_search()
+            params = est[:3]  # est: p, q, m, r2
+            pred_s = self.f(params, self.s_len)
+            pred_cont.append(pred_s[idx:])
+
+        self.pred_res = pred_cont
+
+    def one_step_ahead(self):
+        pred_cont = np.array([x[0] for x in self.pred_res])
+        mad = np.mean(np.abs(pred_cont - self.s[self.b_idx + 1:]))
+        mape = np.mean(np.abs(pred_cont - self.s[self.b_idx + 1:]) / self.s[self.b_idx + 1:])
+        mse = np.mean(np.sqrt(np.sum(np.square(pred_cont - self.s[self.b_idx + 1:]))))
+
+        return mad, mape, mse
+
+    def n_step_ahead(self):
+        pred_cont = np.array([x[:self.n] for x in self.pred_res if self.n <= len(x)])
+        act_cont = np.array([self.s[self.b_idx + i: self.b_idx + i + self.n] for i in range(self.s_len - self.b_idx - self.n)])
+        mad = np.mean(np.abs(pred_cont - act_cont))
+        mape = np.mean(np.abs(pred_cont - act_cont) / act_cont)
+        mse = np.mean(np.sqrt(np.sum(np.square(pred_cont - act_cont))))
+
+        return mad, mape, mse
+
+    def run(self):
+        self.predict()
+        one_cont = self.one_step_ahead()
+        n_cont = self.n_step_ahead()
+        return [one_cont, n_cont]
 
 
 if __name__=='__main__':
