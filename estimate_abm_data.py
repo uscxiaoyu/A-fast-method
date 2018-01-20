@@ -18,7 +18,7 @@ def vst_dir(path, exclude='.pkl', include='.npy'):
                 file_list.append(sub_path)
 
 
-def func(x, n, para_range):
+def func(x, para_range, n=1):
     p, q = x[:2]
     s_full = x[2:]
     max_ix = np.argmax(s_full)
@@ -59,7 +59,7 @@ if __name__ == '__main__':
                  'auto_data/gnm_random_graph(10000,30000),0.5.npy', 'auto_data/gnm_random_graph(10000,30000),0.7.npy',
                  'auto_data/gnm_random_graph(10000,30000),0.9.npy', 'auto_data/gnm_random_graph(10000,30000),1.0.npy']
                  
-    '''
+    
     diff_data = np.load('auto_data/gnm_random_graph(10000,30000).npy')
     for n in [-1, 0, 1, 2, 3, 4, 5]:
         pool = multiprocessing.Pool(processes=6)
@@ -77,3 +77,26 @@ if __name__ == '__main__':
 
         print n, ': Time elapsed: %.2fs' % (time.clock() - t1)
         np.save('auto_data/' + 'estimate_' + 'gnm_random_graph(10000,30000)_Peak%s' % n, to_save)
+    '''
+
+    text_list = ['gnm_random_graph(10000,40000)', 'gnm_random_graph(10000,50000)', 'gnm_random_graph(10000,60000)',
+                 'gnm_random_graph(10000,70000)', 'gnm_random_graph(10000,80000)', 'gnm_random_graph(10000,90000)',
+                 'gnm_random_graph(10000,100000)']
+
+    for text in text_list:
+        diff_data = np.load('auto_data/' + text + '-gmm.npy')
+        pool = multiprocessing.Pool(processes=6)
+        para_range = [[0.00002, 0.09], [0.005, 0.9], [0, 30000]]
+        result = []
+        t1 = time.clock()
+        for x in diff_data:
+            result.append(pool.apply_async(func, (x, para_range)))
+
+        pool.close()
+        pool.join()
+        to_save = []
+        for res in result:
+            to_save.append(res.get())
+
+        print text, ': Time elapsed: %.2fs' % (time.clock() - t1)
+        np.save('auto_data/estimate_%s-gmm' % text, to_save)
