@@ -17,9 +17,8 @@ class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随�
         self.num_runs = num_runs
 
     def decision(self, i):  # 线性决策规则
-        dose = sum([self.g.node[k]['state'] for k in self.g.predecessors(i)])
-        prob = self.p + self.q * dose
-        #prob = self.p + self.q * (dose / self.g.in_degree(i) ** self.alpha) if self.g.in_degree(i) else self.p
+        dose = sum([self.g.node[k]['state'] for k in list(self.g.predecessors(i))])
+        prob = self.p + self.q*dose
         return True if random.random() <= prob else False
 
     def single_diffuse(self):  # 单次扩散
@@ -53,7 +52,7 @@ class Diffuse_gmm(Diffuse):  # social influence
 
     def decision(self, i):  # gmm决策规则
         dose = sum([self.g.node[k]['state'] for k in self.g.predecessors(i)])
-        prob = 1 - (1 - self.p) * (1 - self.q) ** (dose / self.g.in_degree(i) ** self.alpha) if self.g.in_degree(i) else self.p
+        prob = 1 - (1 - self.p)*(1 - self.q)**(dose/self.g.in_degree(i)**self.alpha) if self.g.in_degree(i) else self.p
         return True if random.random() <= prob else False
 
 

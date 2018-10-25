@@ -83,32 +83,20 @@ class Gen_para:
             if max_Q < 0.53:
                 max_q += self.d_q
                 c2 += 1
-
             i += 1
-
-            if c1 + c2 != 0:  # check which ends should be updated
+            if c1 + c2 == 0 or i == 25:
+                break
+            else:
                 if c1 != 0:
                     est_cont[0] = self.add_data(min_p, min_q)
                 if c2 != 0:
                     est_cont[1] = self.add_data(max_p, max_q)
-            else:
-                break
-
-            if i == 25:
-                break
-
         return [(min_p, max_p), (min_q, max_q)], [(min_P, max_P), (min_Q, max_Q)]
 
     def generate_sample(self, n_p=10, n_q=20):
         rg_p, rg_q = self.identify_range()
         sp_cont = [(p, q) for p in np.linspace(rg_p[0], rg_p[1], n_p) for q in np.linspace(rg_q[0], rg_q[1], n_q)]
         return sp_cont
-
-def generate_random_graph(degre_sequance):
-    G = nx.configuration_model(degre_sequance, create_using=None, seed=None)
-    G = nx.Graph(G)
-    G.remove_edges_from(G.selfloop_edges())
-    return G
 
 
 def func(p, q, g):
@@ -118,31 +106,6 @@ def func(p, q, g):
 
 
 if __name__ == '__main__':
-    """
-    expon_seq = np.load('exponential_sequance.npy')
-    gauss_seq = np.load('gaussian_sequance.npy')
-    logno_seq = np.load('lognormal_sequance.npy')
-    g_cont = [nx.barabasi_albert_graph(10000, 3), generate_random_graph(expon_seq), generate_random_graph(gauss_seq),
-              nx.gnm_random_graph(10000, 100000), nx.gnm_random_graph(10000, 30000),
-              nx.gnm_random_graph(10000, 40000), nx.gnm_random_graph(10000, 50000), nx.gnm_random_graph(10000, 60000),
-              nx.gnm_random_graph(10000, 70000), nx.gnm_random_graph(10000, 80000), nx.gnm_random_graph(10000, 90000),
-              generate_random_graph(logno_seq),
-              nx.watts_strogatz_graph(10000, 6, 0), nx.watts_strogatz_graph(10000, 6, 0.1),
-              nx.watts_strogatz_graph(10000, 6, 0.3), nx.watts_strogatz_graph(10000, 6, 0.5),
-              nx.watts_strogatz_graph(10000, 6, 0.7), nx.watts_strogatz_graph(10000, 6, 0.9),
-              nx.watts_strogatz_graph(10000, 6, 1)]
-
-    txt_cont = ['barabasi_albert_graph(10000,3)', 'exponential_graph(10000,3)', 'gaussian_graph(10000,3)',
-                'gnm_random_graph(10000,100000)', 'gnm_random_graph(10000,30000)',
-                'gnm_random_graph(10000,40000)', 'gnm_random_graph(10000,50000)', 'gnm_random_graph(10000,60000)',
-                'gnm_random_graph(10000,70000)', 'gnm_random_graph(10000,80000)', 'gnm_random_graph(10000,90000)',
-                'lognormal_graph(10000,3)',
-                'watts_strogatz_graph(10000,6,0)', 'watts_strogatz_graph(10000,6,0.1)',
-                'watts_strogatz_graph(10000,6,0.3)', 'watts_strogatz_graph(10000,6,0.5)',
-                'watts_strogatz_graph(10000,6,0.7)', 'watts_strogatz_graph(10000,6,0.9)',
-                'watts_strogatz_graph(10000,6,1.0)']
-    
-    """
     bound_dict = {}
     g_cont = []
 
