@@ -1,4 +1,4 @@
-#coding=utf-8
+# coding=utf-8
 from estimate_bass import *
 import numpy as np
 import networkx as nx
@@ -15,7 +15,7 @@ class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随�
         self.num_runs = num_runs
 
     def decision(self, i):  # 线性决策规则
-        dose = sum([self.g.node[k]['state'] for k in self.g.predecessors(i)])
+        dose = sum([self.g.node[k]['state'] for k in list(self.g.predecessors(i))])
         prob = 1 - (1 - self.p) * (1 - self.q) ** dose
         return True if random.random() <= prob else False
 
