@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import division
 from copy import deepcopy as dc
 from numpy import exp
 import numpy as np
@@ -22,7 +21,7 @@ class Bass_estimate:
             if not self.orig_points:  # org_points为空时，加入第1个点
                 self.orig_points = [[pa[0]], [pa[1]]]  # 初始化,排除orig_points为空的情形
             else:
-                self.orig_points = [[pa[0]] + x for x in self.orig_points] + [[pa[1]] + x for x in self.orig_points]  # 二分裂
+                self.orig_points = [[pa[0]]+x for x in self.orig_points] + [[pa[1]]+x for x in self.orig_points]  # 二分裂
             self.p_range.pop()
             return self.gener_orig()
 
@@ -30,9 +29,9 @@ class Bass_estimate:
         p_list = []
         for pa in c_range:
             if isinstance(pa[0], float):
-                x = (pa[1] - pa[0]) * np.random.random(self.t_n) + pa[0]
+                x = (pa[1]-pa[0]) * np.random.random(self.t_n) + pa[0]
             else:
-                x = np.random.randint(low=pa[0], high=pa[1] + 1, size=self.t_n)
+                x = np.random.randint(low=pa[0], high=pa[1]+1, size=self.t_n)
             p_list.append(x)
         p_list = np.array(p_list).T
         return p_list.tolist()
@@ -40,13 +39,13 @@ class Bass_estimate:
     def f(self, params):  # 如果要使用其它模型，可以重新定义
         p, q, m = params
         t_list = np.arange(1, self.s_len + 1)
-        a = np.array([1 - exp(- (p + q) * t) for t in t_list])
-        b = np.array([1 + q / p * exp(- (p + q) * t) for t in t_list])
+        a = np.array([1 - exp(-(p+q)*t) for t in t_list])
+        b = np.array([1 + q / p * exp(-(p+q)*t) for t in t_list])
         diff_cont = m * a / b
         adopt_cont = np.zeros_like(diff_cont)
         adopt_cont[0] = diff_cont[0]
         for t in range(1, self.s_len):
-            adopt_cont[t] = diff_cont[t] - diff_cont[t - 1]
+            adopt_cont[t] = diff_cont[t] - diff_cont[t-1]
         return adopt_cont
 
     def mse(self, params):  # 定义适应度函数（mse）
@@ -59,26 +58,26 @@ class Bass_estimate:
         tse = np.sum(np.square(self.s - f_act))
         mean_y = np.mean(self.s)
         ssl = np.sum(np.square(self.s - mean_y))
-        R_2 = (ssl-tse)/ssl
+        R_2 = (ssl-tse) / ssl
         return R_2
 
     def optima_search(self, c_n=100, stop_iters=100, threshold=1e-4):
         self.gener_orig()  # 产生边界节点
         c_range = dc(self.para_range)
         samp = self.sample(c_range)
-        solution = sorted([self.mse(x)] + x for x in samp + self.orig_points)[:c_n]
+        solution = sorted([self.mse(x)]+x for x in samp + self.orig_points)[:c_n]
         for i in range(stop_iters):
             params_min = np.min(np.array(solution), 0)  # 最小值
             params_max = np.max(np.array(solution), 0)  # 最大值
-            c_range = [[params_min[j + 1], params_max[j + 1]] for j in range(len(c_range))]  # 重新定界
+            c_range = [[params_min[j+1], params_max[j + 1]] for j in range(len(c_range))]  # 重新定界
             samp = self.sample(c_range)
-            solution = sorted([[self.mse(x)] + x for x in samp] + solution)[:c_n]
+            solution = sorted([[self.mse(x)]+x for x in samp] + solution)[:c_n]
             r = sorted([x[0] for x in solution])
-            v = (r[-1] - r[0]) / r[0]
+            v = (r[-1]-r[0]) / r[0]
             if v < threshold:
                 break
         else:
-            print 'Searching ends in 100 runs'
+            print('Searching ends in 100 runs')
 
         r2 = self.r2(solution[0][1:])
         result = solution[0][1:] + [r2]
@@ -94,15 +93,15 @@ class Bass_forecast:
 
     def f(self, params, T):  # 如果要使用其它模型，可以重新定义
         p, q, m = params
-        t_list = np.arange(1, T + 1)
-        a = np.array([1 - exp(- (p + q) * t) for t in t_list])
-        b = np.array([1 + q / p * exp(- (p + q) * t) for t in t_list])
+        t_list = np.arange(1, T+1)
+        a = np.array([1 - exp(-(p+q)*t) for t in t_list])
+        b = np.array([1 + q / p * exp(-(p+q)*t) for t in t_list])
         diffu_cont = m * a / b
 
         adopt_cont = np.zeros_like(diffu_cont)
         adopt_cont[0] = diffu_cont[0]
         for t in range(1, T):
-            adopt_cont[t] = diffu_cont[t] - diffu_cont[t - 1]
+            adopt_cont[t] = diffu_cont[t] - diffu_cont[t-1]
 
         return adopt_cont
 
@@ -110,8 +109,8 @@ class Bass_forecast:
         pred_cont = []
         for i in range(self.s_len - 1 - self.b_idx):  # 拟合次数
             idx = self.b_idx + 1 + i
-            x = self.s[: idx]
-            para_range = [[1e-5, 0.1], [1e-5, 0.8], [sum(x), 15 * sum(x)]]
+            x = self.s[:idx]
+            para_range = [[1e-5, 0.1], [1e-5, 0.8], [sum(x), 15*sum(x)]]
             bass_est = Bass_estimate(x, para_range)
             est = bass_est.optima_search()
             params = est[:3]  # est: p, q, m, r2
@@ -122,17 +121,17 @@ class Bass_forecast:
 
     def one_step_ahead(self):
         pred_cont = np.array([x[0] for x in self.pred_res])
-        mad = np.mean(np.abs(pred_cont - self.s[self.b_idx + 1:]))
-        mape = np.mean(np.abs(pred_cont - self.s[self.b_idx + 1:]) / self.s[self.b_idx + 1:])
-        mse = np.mean(np.sqrt(np.sum(np.square(pred_cont - self.s[self.b_idx + 1:]))))
+        mad = np.mean(np.abs(pred_cont - self.s[self.b_idx+1:]))
+        mape = np.mean(np.abs(pred_cont - self.s[self.b_idx+1:]) / self.s[self.b_idx+1:])
+        mse = np.mean(np.sqrt(np.sum(np.square(pred_cont - self.s[self.b_idx+1:]))))
 
         return mad, mape, mse
 
     def n_step_ahead(self):
-        pred_cont = np.array([x[: self.n] for x in self.pred_res if self.n <= len(x)])
-        act_cont = np.array([self.s[self.b_idx + i : self.b_idx + i + self.n] for i in range(self.s_len - self.b_idx - self.n)])
-        mad = np.mean(np.abs(pred_cont - act_cont))
-        mape = np.mean(np.abs(pred_cont - act_cont) / act_cont)
+        pred_cont = np.array([x[:self.n] for x in self.pred_res if self.n <= len(x)])
+        act_cont = np.array([self.s[self.b_idx+i : self.b_idx+i+self.n] for i in range(self.s_len-self.b_idx-self.n)])
+        mad = np.mean(np.abs(pred_cont-act_cont))
+        mape = np.mean(np.abs(pred_cont-act_cont) / act_cont)
         mse = np.mean(np.sqrt(np.sum(np.square(pred_cont - act_cont))))
 
         return mad, mape, mse
@@ -176,7 +175,7 @@ if __name__=='__main__':
     bass_fore = Bass_forecast(S, n=3, b_idx=8)
     res = bass_fore.run()
 
-    print u'1步向前预测:',
-    print 'MAD:%.2f  MAPE:%.2f  MSE:%.2f' % res[0]
-    print u'3步向前预测:',
-    print 'MAD:%.2f  MAPE:%.2f  MSE:%.2f' % res[1]
+    print('1步向前预测:', end=' ')
+    print('MAD:%.2f  MAPE:%.2f  MSE:%.2f' % res[0])
+    print('3步向前预测:', end=' ')
+    print('MAD:%.2f  MAPE:%.2f  MSE:%.2f' % res[1])

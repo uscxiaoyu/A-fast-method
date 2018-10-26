@@ -1,13 +1,7 @@
-#for python3
-import estimate_bass as eb
-import numpy as np
-import time
 import os
-import multiprocessing
 
 path = 'data/'
 file_list = []
-
 
 def vst_dir(path, exclude='estimate', include='.npy'):
     for x in os.listdir(path):
