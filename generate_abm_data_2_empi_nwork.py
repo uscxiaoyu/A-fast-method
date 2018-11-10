@@ -15,7 +15,7 @@ class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随�
         self.num_runs = num_runs
 
     def decision(self, i):  # 线性决策规则
-        dose = sum([self.g.node[k]['state'] for k in list(self.g.predecessors(i))])
+        dose = sum([self.g.node[k]['state'] for k in list(self.g.predecessors(i))])  #此处必须转换为list，否则一次迭代完为空
         prob = self.p + self.q*dose
         return True if random.random() <= prob else False
 
@@ -107,10 +107,11 @@ def func(p, q, g):
 
 if __name__ == '__main__':
     bound_dict = {}
-    g_cont = []
+    g_1 = nx.read_gpickle('/Users/xiaoyu/IPython notebook/facebook.gpickle')
+    g_2 = nx.read_gpickle('/Users/xiaoyu/IPython notebook/epinions.gpickle')
+    g_cont = [g_1, g_2]
 
-    txt_cont = ['watts_strogatz_graph(10000,6,0)', 'watts_strogatz_graph(10000,6,0.1)',
-                'watts_strogatz_graph(10000,6,0.3)']
+    txt_cont = ['facebook_network', 'epinions_network']
 
     for j, g in enumerate(g_cont):
         t1 = time.process_time()
@@ -135,4 +136,3 @@ if __name__ == '__main__':
     f = open('auto_data/bound.pkl', 'wb')
     pickle.dump(bound_dict, f)
     f.close()
-    # f = open('auto_data/bound.pkl'); pickle.load(f)

@@ -97,8 +97,8 @@ class Bass_Forecast:
     def f(self, params):  # 如果要使用其它模型，可以重新定义
         p, q, m = params
         t_list = np.arange(1, self.s_len+ 1)
-        a = 1 - np.exp(-(p + q) * t_list)
-        b = 1 + q / p * np.exp(-(p + q) * t_list)
+        a = 1 - np.exp(-(p + q)*t_list)
+        b = 1 + q/p*np.exp(-(p + q)*t_list)
         diffu_cont = m * a / b
 
         adopt_cont = np.zeros_like(diffu_cont)
@@ -124,7 +124,7 @@ class Bass_Forecast:
     def one_step_ahead(self):
         pred_cont = np.array([x[0] for x in self.pred_res])
         mad = np.mean(np.abs(pred_cont - self.s[self.b_idx + 1:]))
-        mape = np.mean(np.abs(pred_cont - self.s[self.b_idx + 1:]) / self.s[self.b_idx + 1:])
+        mape = np.mean(np.abs(pred_cont - self.s[self.b_idx + 1:])/self.s[self.b_idx + 1:])
         mse = np.mean(np.sqrt(np.sum(np.square(pred_cont - self.s[self.b_idx + 1:]))))
 
         return mad, mape, mse
@@ -166,7 +166,7 @@ if __name__=='__main__':
     m_idx = np.argmax(S)
     s = S[:m_idx + 2]
     t1 = time.process_time()
-    para_range = [[1e-5, 0.1], [1e-5, 0.8], [sum(s), 10 * sum(s)]]
+    para_range = [[1e-5, 0.1], [1e-5, 0.8], [sum(s), 10*sum(s)]]
     bassest = Bass_Estimate(s, para_range)
     bass_estimates = bassest.optima_search(c_n=100, threshold=10e-8)
     print('p:%.4f   q:%.4f   m:%d   r2:%.4f' % tuple(bass_estimates))
