@@ -8,15 +8,14 @@ import multiprocessing
 
 class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随机网络
     def __init__(self, p, q, alpha=0, g=nx.gnm_random_graph(10000, 30000), num_runs=35):
-        if not nx.is_directed(g):
-            self.g = g.to_directed()
+        self.g = g if g.is_directed() else g.to_directed()
         self.p, self.q = p, q
         self.alpha = alpha
         self.num_runs = num_runs
 
     def decision(self, i):  # 线性决策规则
         dose = sum([self.g.node[k]['state'] for k in list(self.g.predecessors(i))])
-        prob = self.p + self.q * dose
+        prob = self.p + self.q*dose
         return True if random.random() <= prob else False
 
     def single_diffuse(self):  # 单次扩散
@@ -50,7 +49,7 @@ class Diffuse_gmm(Diffuse):  # social influence
 
     def decision(self, i):  # gmm决策规则
         dose = sum([self.g.node[k]['state'] for k in self.g.predecessors(i)])
-        prob = 1 - (1 - self.p)*(1 - self.q)**(dose / self.g.in_degree(i) ** self.alpha) \
+        prob = 1 - (1 - self.p) * (1 - self.q) ** (dose / self.g.in_degree(i) ** self.alpha) \
             if self.g.in_degree(i) else self.p
         return True if random.random() <= prob else False
 
@@ -74,15 +73,11 @@ if __name__ == '__main__':
     g_cont = [g_1, g_2]
 
     txt_cont = ['facebook_network', 'epinions_network']
-    bound_dict = {'facebook_network': ([(1.1744051200000018e-05, 0.019),(0.15, 0.2)],
-                                    [(0.0005851833355511311, 0.03942370539955275),
-                                    (0.08566117951300223, 0.6049901066003283)]),
-                  'epinions_network': ([(7.000000000000008e-05, 0.019), (0.11, 0.15)],
-                                    [(0.0003985278742605879, 0.03002370660942767),
-                                    (0.22768315273114983, 0.5356097641357954)])}
+    bound_dict = {'facebook_network': [(0.001, 0.01),(0.001, 0.039)],
+                  'epinions_network': [(,), (,)]}
 
     for i, key in enumerate(sorted(bound_dict.keys())):
-        r_p, r_q = bound_dict[key][0]
+        r_p, r_q = bound_dict[key]
         pq_cont = [(p, q) for p in np.linspace(r_p[0], r_p[1], num=10) for q in np.linspace(r_q[0], r_q[1], num=15)]
         g = g_cont[i]
         t1 = time.process_time()

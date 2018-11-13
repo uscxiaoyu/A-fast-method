@@ -9,8 +9,7 @@ import pickle
 
 class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随机网络
     def __init__(self, p, q, g=nx.gnm_random_graph(10000, 30000), num_runs=30):
-        if not nx.is_directed(g):
-            self.g = g.to_directed()
+        self.g = g if g.is_directed() else g.to_directed()  # 将无向网络转换为有向网络
         self.p, self.q = p, q
         self.num_runs = num_runs
 
@@ -46,13 +45,14 @@ class Gen_para:
         self.q_cont = q_cont
         self.d_p, self.d_q = delta
         self.g = g
+        self.num_nodes = self.g.number_of_nodes()
 
     def add_data(self, p, q):
         diff = Diffuse(p, q, g=self.g)
         x = np.mean(diff.repete_diffuse(), axis=0)
         max_idx = np.argmax(x)
         s = x[: (max_idx + 2)]
-        para_range = [[1e-6, 0.1], [1e-5, 0.8], [2000, 20000]]
+        para_range = [[1e-6, 0.1], [1e-5, 0.8], [0.2 * self.num_nodes, 10 * self.num_nodes]]
         bassest = Bass_Estimate(s, para_range)
         bassest.t_n = 1000
         res = bassest.optima_search(c_n=200, threshold=10e-8)
