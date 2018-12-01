@@ -98,5 +98,5 @@ if __name__ == '__main__':
         for res in result:
             to_save.append(res.get())
 
-        print text, ': Time elapsed: %.2fs' % (time.clock() - t1)
+        print(text, f': Time elapsed: {(time.clock() - t1) : .2f}s')
         np.save('auto_data/estimate_%s-gmm' % text, to_save)
