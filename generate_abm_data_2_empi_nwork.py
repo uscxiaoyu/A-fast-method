@@ -41,8 +41,7 @@ class Diffuse:  # 默认网络结构为节点数量为10000，边为30000的随�
 
 class Gen_para:
     def __init__(self, g, p_cont=(0.001, 0.02), q_cont=(0.08, 0.1), delta=(0.0005, 0.01)):
-        self.p_cont = p_cont
-        self.q_cont = q_cont
+        self.p_cont, self.q_cont = p_cont, q_cont
         self.d_p, self.d_q = delta
         self.g = g
         self.num_nodes = self.g.number_of_nodes()
@@ -51,8 +50,8 @@ class Gen_para:
         diff = Diffuse(p, q, g=self.g)
         x = np.mean(diff.repete_diffuse(), axis=0)
         max_idx = np.argmax(x)
-        s = x[: (max_idx + 2)]
-        para_range = [[1e-6, 0.1], [1e-5, 0.8], [0.2 * self.num_nodes, 10 * self.num_nodes]]
+        s = x[ : (max_idx + 2)]
+        para_range = [[1e-6, 0.1], [1e-5, 0.8], [0.2*self.num_nodes, 10*self.num_nodes]]
         bassest = Bass_Estimate(s, para_range)
         bassest.t_n = 1000
         res = bassest.optima_search(c_n=200, threshold=10e-8)

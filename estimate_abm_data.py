@@ -107,3 +107,4 @@ if __name__ == '__main__':
 
         print(f"{text}: Time elapsed: {(time.process_time() - t1):.2f}s")
         np.save(f"auto_data/estimate_{text}", to_save)
+
