@@ -4,6 +4,7 @@ import numpy as np
 import time
 import os
 import multiprocessing
+import networkx as nx
 
 file_list = []
 
@@ -77,18 +78,24 @@ if __name__ == '__main__':
 
         print n, ': Time elapsed: %.2fs' % (time.clock() - t1)
         np.save('auto_data/' + 'estimate_' + 'gnm_random_graph(10000,30000)_Peak%s' % n, to_save)
-    '''
+    
 
     text_list = ['gnm_random_graph(10000,40000)', 'gnm_random_graph(10000,50000)', 'gnm_random_graph(10000,60000)',
                  'gnm_random_graph(10000,70000)', 'gnm_random_graph(10000,80000)', 'gnm_random_graph(10000,90000)',
                  'gnm_random_graph(10000,100000)']
+'''
+    g_1 = nx.read_gpickle('/home/yu/Jupyter notebook/facebook.gpickle')
+    g_2 = nx.read_gpickle('/home/yu/Jupyter notebook/epinions.gpickle')
+    num_nodes = {"facebook_network": nx.number_of_nodes(g_1),
+                 "epinions_network": nx.number_of_nodes(g_2)}
 
+    text_list = ["facebook_network", "epinions_network"]
     for text in text_list:
-        diff_data = np.load('auto_data/' + text + '-gmm.npy')
-        pool = multiprocessing.Pool(processes=6)
-        para_range = [[0.00002, 0.09], [0.005, 0.9], [0, 30000]]
+        diff_data = np.load('auto_data/' + text + '.npy')
+        pool = multiprocessing.Pool(processes=5)
+        para_range = [[0.00002, 0.08], [0.005, 0.8], [0.2*num_nodes[text], 2*num_nodes[text]]]
         result = []
-        t1 = time.clock()
+        t1 = time.process_time()
         for x in diff_data:
             result.append(pool.apply_async(func, (x, para_range)))
 
@@ -98,5 +105,5 @@ if __name__ == '__main__':
         for res in result:
             to_save.append(res.get())
 
-        print text, ': Time elapsed: %.2fs' % (time.clock() - t1)
-        np.save('auto_data/estimate_%s-gmm' % text, to_save)
+        print(f"{text}: Time elapsed: {(time.process_time() - t1):.2f}s")
+        np.save(f"auto_data/estimate_{text}", to_save)

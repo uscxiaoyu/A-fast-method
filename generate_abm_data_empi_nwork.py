@@ -68,27 +68,33 @@ def func(p, q, g):
 
 
 if __name__ == '__main__':
-    g_1 = nx.read_gpickle('/Users/xiaoyu/IPython notebook/facebook.gpickle')
-    g_2 = nx.read_gpickle('/Users/xiaoyu/IPython notebook/epinions.gpickle')
+    g_1 = nx.read_gpickle('/home/yu/Jupyter notebook/facebook.gpickle')
+    g_2 = nx.read_gpickle('/home/yu/Jupyter notebook/epinions.gpickle')
     g_cont = [g_1, g_2]
 
     txt_cont = ['facebook_network', 'epinions_network']
-    bound_dict = {'facebook_network': [(0.001, 0.01),(0.001, 0.039)],
-                  'epinions_network': [(,), (,)]}
-
+    bound_dict = {'facebook_network': [(0.001, 0.01), (0.006, 0.015)],
+                  'epinions_network': [(0.001, 0.01), (0.017, 0.04)]}
+    t2 = time.process_time()
     for i, key in enumerate(sorted(bound_dict.keys())):
         r_p, r_q = bound_dict[key]
         pq_cont = [(p, q) for p in np.linspace(r_p[0], r_p[1], num=10) for q in np.linspace(r_q[0], r_q[1], num=15)]
         g = g_cont[i]
         t1 = time.process_time()
-        pool = multiprocessing.Pool(processes=6)
+
+        pool = multiprocessing.Pool(processes=5)
         result = []
         for p, q in pq_cont:
             result.append(pool.apply_async(func, (p, q, g)))
+
         pool.close()
         pool.join()
+
         data = []
         for res in result:
             data.append(res.get())
-        print(i+1,  key, 'Time: %.2f s' % (time.process_time()-t1))
+
+        print(f"{i+1} {key} Time:{(time.process_time()-t1):.2f}秒")
         np.save('auto_data/'+key, data)
+
+    print(f"执行完毕!总时间为{(time.process_time() - t2):.2f}秒")
